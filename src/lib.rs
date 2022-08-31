@@ -274,6 +274,12 @@ mod euler;
 mod features;
 mod float_ex;
 
+#[cfg(all(
+    target_arch = "aarch64",
+    not(any(feature = "core-simd", feature = "scalar-math"))
+))]
+mod neon;
+
 #[cfg(target_arch = "spirv")]
 mod spirv;
 

@@ -1078,14 +1078,14 @@ impl fmt::Debug for Vec3A {
 }
 
 impl From<Vec3A> for __m128 {
-    #[inline]
+    #[inline(always)]
     fn from(t: Vec3A) -> Self {
         t.0
     }
 }
 
 impl From<__m128> for Vec3A {
-    #[inline]
+    #[inline(always)]
     fn from(t: __m128) -> Self {
         Self(t)
     }

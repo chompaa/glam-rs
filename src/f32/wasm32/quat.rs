@@ -82,8 +82,8 @@ impl Quat {
     ///
     /// This function does not check if the input is normalized, it is up to the user to
     /// provide normalized input or to normalized the resulting quaternion.
-    #[inline]
-    pub fn from_vec4(v: Vec4) -> Self {
+    #[inline(always)]
+    pub const fn from_vec4(v: Vec4) -> Self {
         Self(v.0)
     }
 

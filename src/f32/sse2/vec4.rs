@@ -132,8 +132,8 @@ impl Vec4 {
     /// Panics if `slice` is less than 4 elements long.
     #[inline]
     pub fn write_to_slice(self, slice: &mut [f32]) {
+        assert!(slice.len() >= 4);
         unsafe {
-            assert!(slice.len() >= 4);
             _mm_storeu_ps(slice.as_mut_ptr(), self.0);
         }
     }
@@ -993,14 +993,14 @@ impl fmt::Debug for Vec4 {
 }
 
 impl From<Vec4> for __m128 {
-    #[inline]
+    #[inline(always)]
     fn from(t: Vec4) -> Self {
         t.0
     }
 }
 
 impl From<__m128> for Vec4 {
-    #[inline]
+    #[inline(always)]
     fn from(t: __m128) -> Self {
         Self(t)
     }

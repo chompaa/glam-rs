@@ -692,7 +692,7 @@ impl Div<f32> for Vec4 {
 impl DivAssign<f32> for Vec4 {
     #[inline]
     fn div_assign(&mut self, rhs: f32) {
-        self.0 = f32x4_div(self.0, f32x4_splat(rhs))
+        self.0 = f32x4_div(self.0, f32x4_splat(rhs));
     }
 }
 
@@ -968,14 +968,14 @@ impl fmt::Debug for Vec4 {
 }
 
 impl From<Vec4> for v128 {
-    #[inline]
+    #[inline(always)]
     fn from(t: Vec4) -> Self {
         t.0
     }
 }
 
 impl From<v128> for Vec4 {
-    #[inline]
+    #[inline(always)]
     fn from(t: v128) -> Self {
         Self(t)
     }

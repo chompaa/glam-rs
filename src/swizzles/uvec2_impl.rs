@@ -41,74 +41,42 @@ impl Vec2Swizzles for UVec2 {
 
     #[inline]
     fn xxx(self) -> UVec3 {
-        UVec3 {
-            x: self.x,
-            y: self.x,
-            z: self.x,
-        }
+        UVec3::new(self.x, self.x, self.x)
     }
 
     #[inline]
     fn xxy(self) -> UVec3 {
-        UVec3 {
-            x: self.x,
-            y: self.x,
-            z: self.y,
-        }
+        UVec3::new(self.x, self.x, self.y)
     }
 
     #[inline]
     fn xyx(self) -> UVec3 {
-        UVec3 {
-            x: self.x,
-            y: self.y,
-            z: self.x,
-        }
+        UVec3::new(self.x, self.y, self.x)
     }
 
     #[inline]
     fn xyy(self) -> UVec3 {
-        UVec3 {
-            x: self.x,
-            y: self.y,
-            z: self.y,
-        }
+        UVec3::new(self.x, self.y, self.y)
     }
 
     #[inline]
     fn yxx(self) -> UVec3 {
-        UVec3 {
-            x: self.y,
-            y: self.x,
-            z: self.x,
-        }
+        UVec3::new(self.y, self.x, self.x)
     }
 
     #[inline]
     fn yxy(self) -> UVec3 {
-        UVec3 {
-            x: self.y,
-            y: self.x,
-            z: self.y,
-        }
+        UVec3::new(self.y, self.x, self.y)
     }
 
     #[inline]
     fn yyx(self) -> UVec3 {
-        UVec3 {
-            x: self.y,
-            y: self.y,
-            z: self.x,
-        }
+        UVec3::new(self.y, self.y, self.x)
     }
 
     #[inline]
     fn yyy(self) -> UVec3 {
-        UVec3 {
-            x: self.y,
-            y: self.y,
-            z: self.y,
-        }
+        UVec3::new(self.y, self.y, self.y)
     }
 
     #[inline]

@@ -41,74 +41,42 @@ impl Vec2Swizzles for Vec2 {
 
     #[inline]
     fn xxx(self) -> Vec3 {
-        Vec3 {
-            x: self.x,
-            y: self.x,
-            z: self.x,
-        }
+        Vec3::new(self.x, self.x, self.x)
     }
 
     #[inline]
     fn xxy(self) -> Vec3 {
-        Vec3 {
-            x: self.x,
-            y: self.x,
-            z: self.y,
-        }
+        Vec3::new(self.x, self.x, self.y)
     }
 
     #[inline]
     fn xyx(self) -> Vec3 {
-        Vec3 {
-            x: self.x,
-            y: self.y,
-            z: self.x,
-        }
+        Vec3::new(self.x, self.y, self.x)
     }
 
     #[inline]
     fn xyy(self) -> Vec3 {
-        Vec3 {
-            x: self.x,
-            y: self.y,
-            z: self.y,
-        }
+        Vec3::new(self.x, self.y, self.y)
     }
 
     #[inline]
     fn yxx(self) -> Vec3 {
-        Vec3 {
-            x: self.y,
-            y: self.x,
-            z: self.x,
-        }
+        Vec3::new(self.y, self.x, self.x)
     }
 
     #[inline]
     fn yxy(self) -> Vec3 {
-        Vec3 {
-            x: self.y,
-            y: self.x,
-            z: self.y,
-        }
+        Vec3::new(self.y, self.x, self.y)
     }
 
     #[inline]
     fn yyx(self) -> Vec3 {
-        Vec3 {
-            x: self.y,
-            y: self.y,
-            z: self.x,
-        }
+        Vec3::new(self.y, self.y, self.x)
     }
 
     #[inline]
     fn yyy(self) -> Vec3 {
-        Vec3 {
-            x: self.y,
-            y: self.y,
-            z: self.y,
-        }
+        Vec3::new(self.y, self.y, self.y)
     }
 
     #[inline]

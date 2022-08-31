@@ -2,18 +2,15 @@
 
 use crate::{
     euler::{EulerFromQuaternion, EulerRot, EulerToQuaternion},
-    sse2::*,
-    DQuat, FloatEx, Mat3, Mat3A, Mat4, Vec2, Vec3, Vec3A, Vec4,
+    neon::*,
+    DQuat, FloatEx, Mat3, Mat4, Vec2, Vec3, Vec3A, Vec4,
 };
 
 #[cfg(feature = "libm")]
 #[allow(unused_imports)]
 use num_traits::Float;
 
-#[cfg(target_arch = "x86")]
-use core::arch::x86::*;
-#[cfg(target_arch = "x86_64")]
-use core::arch::x86_64::*;
+use core::arch::aarch64::*;
 
 #[cfg(not(target_arch = "spirv"))]
 use core::fmt;
@@ -40,12 +37,10 @@ pub const fn quat(x: f32, y: f32, z: f32, w: f32) -> Quat {
 /// floating point "error creep" which can occur when successive quaternion
 /// operations are applied.
 ///
-/// SIMD vector types are used for storage on supported platforms.
-///
 /// This type is 16 byte aligned.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct Quat(pub(crate) __m128);
+pub struct Quat(pub(crate) float32x4_t);
 
 impl Quat {
     /// All zeros.
@@ -108,7 +103,7 @@ impl Quat {
     #[inline]
     pub fn from_slice(slice: &[f32]) -> Self {
         assert!(slice.len() >= 4);
-        Self(unsafe { _mm_loadu_ps(slice.as_ptr()) })
+        Self(unsafe { vld1q_f32(slice.as_ptr()) })
     }
 
     /// Writes the quaternion to an unaligned slice.
@@ -119,7 +114,7 @@ impl Quat {
     #[inline]
     pub fn write_to_slice(self, slice: &mut [f32]) {
         assert!(slice.len() >= 4);
-        unsafe { _mm_storeu_ps(slice.as_mut_ptr(), self.0) }
+        unsafe { vst1q_f32(slice.as_mut_ptr(), self.0) }
     }
 
     /// Create a quaternion for a normalized rotation `axis` and `angle` (in radians).
@@ -240,12 +235,6 @@ impl Quat {
     #[inline]
     pub fn from_mat3(mat: &Mat3) -> Self {
         Self::from_rotation_axes(mat.x_axis, mat.y_axis, mat.z_axis)
-    }
-
-    /// Creates a quaternion from a 3x3 SIMD aligned rotation matrix.
-    #[inline]
-    pub fn from_mat3a(mat: &Mat3A) -> Self {
-        Self::from_rotation_axes(mat.x_axis.into(), mat.y_axis.into(), mat.z_axis.into())
     }
 
     /// Creates a quaternion from a 3x3 rotation matrix inside a homogeneous 4x4 matrix.
@@ -398,8 +387,8 @@ impl Quat {
     #[must_use]
     #[inline]
     pub fn conjugate(self) -> Self {
-        const SIGN: __m128 = m128_from_f32x4([-0.0, -0.0, -0.0, 0.0]);
-        Self(unsafe { _mm_xor_ps(self.0, SIGN) })
+        const SIGN: float32x4_t = f32x4_from_array([-1.0, -1.0, -1.0, 1.0]);
+        Self(unsafe { vmulq_f32(self.0, SIGN) })
     }
 
     /// Returns the inverse of a normalized quaternion.
@@ -547,16 +536,22 @@ impl Quat {
         glam_assert!(self.is_normalized());
         glam_assert!(end.is_normalized());
 
-        const NEG_ZERO: __m128 = m128_from_f32x4([-0.0; 4]);
+        const NEG_ZERO: float32x4_t = f32x4_from_array([-0.0; 4]);
         let start = self.0;
         let end = end.0;
         unsafe {
-            let dot = dot4_into_m128(start, end);
+            let dot = dot4_into_f32x4(start, end);
             // Calculate the bias, if the dot product is positive or zero, there is no bias
             // but if it is negative, we want to flip the 'end' rotation XYZW components
-            let bias = _mm_and_ps(dot, NEG_ZERO);
-            let interpolated = _mm_add_ps(
-                _mm_mul_ps(_mm_sub_ps(_mm_xor_ps(end, bias), start), _mm_set_ps1(s)),
+            let bias = vandq_u32(vreinterpretq_u32_f32(dot), vreinterpretq_u32_f32(NEG_ZERO));
+            let interpolated = vaddq_f32(
+                vmulq_f32(
+                    vsubq_f32(
+                        vreinterpretq_f32_u32(veorq_u32(vreinterpretq_u32_f32(end), bias)),
+                        start,
+                    ),
+                    vld1q_dup_f32(&s),
+                ),
                 start,
             );
             Quat(interpolated).normalize()
@@ -598,20 +593,19 @@ impl Quat {
         } else {
             let theta = dot.acos_approx();
 
-            let x = 1.0 - s;
-            let y = s;
-            let z = 1.0;
-
+            let x = (theta * (1.0 - s)).sin();
+            let y = (theta * s).sin();
+            let z = theta.sin();
+            let w = 0.0;
             unsafe {
-                let tmp = _mm_mul_ps(_mm_set_ps1(theta), _mm_set_ps(0.0, z, y, x));
-                let tmp = m128_sin(tmp);
+                let tmp = vld1q_f32([x, y, z, w].as_ptr());
 
-                let scale1 = _mm_shuffle_ps(tmp, tmp, 0b00_00_00_00);
-                let scale2 = _mm_shuffle_ps(tmp, tmp, 0b01_01_01_01);
-                let theta_sin = _mm_shuffle_ps(tmp, tmp, 0b10_10_10_10);
+                let scale1 = vdupq_laneq_f32(tmp, 0);
+                let scale2 = vdupq_laneq_f32(tmp, 1);
+                let theta_sin = vdupq_laneq_f32(tmp, 2);
 
-                Self(_mm_div_ps(
-                    _mm_add_ps(_mm_mul_ps(self.0, scale1), _mm_mul_ps(end.0, scale2)),
+                Self(vdivq_f32(
+                    vaddq_f32(vmulq_f32(self.0, scale1), vmulq_f32(end.0, scale2)),
                     theta_sin,
                 ))
             }
@@ -643,41 +637,14 @@ impl Quat {
         glam_assert!(self.is_normalized());
         glam_assert!(rhs.is_normalized());
 
-        // Based on https://github.com/nfrechette/rtm `rtm::quat_mul`
-        const CONTROL_WZYX: __m128 = m128_from_f32x4([1.0, -1.0, 1.0, -1.0]);
-        const CONTROL_ZWXY: __m128 = m128_from_f32x4([1.0, 1.0, -1.0, -1.0]);
-        const CONTROL_YXWZ: __m128 = m128_from_f32x4([-1.0, 1.0, 1.0, -1.0]);
-
-        let lhs = self.0;
-        let rhs = rhs.0;
-
-        unsafe {
-            let r_xxxx = _mm_shuffle_ps(lhs, lhs, 0b00_00_00_00);
-            let r_yyyy = _mm_shuffle_ps(lhs, lhs, 0b01_01_01_01);
-            let r_zzzz = _mm_shuffle_ps(lhs, lhs, 0b10_10_10_10);
-            let r_wwww = _mm_shuffle_ps(lhs, lhs, 0b11_11_11_11);
-
-            let lxrw_lyrw_lzrw_lwrw = _mm_mul_ps(r_wwww, rhs);
-            let l_wzyx = _mm_shuffle_ps(rhs, rhs, 0b00_01_10_11);
-
-            let lwrx_lzrx_lyrx_lxrx = _mm_mul_ps(r_xxxx, l_wzyx);
-            let l_zwxy = _mm_shuffle_ps(l_wzyx, l_wzyx, 0b10_11_00_01);
-
-            let lwrx_nlzrx_lyrx_nlxrx = _mm_mul_ps(lwrx_lzrx_lyrx_lxrx, CONTROL_WZYX);
-
-            let lzry_lwry_lxry_lyry = _mm_mul_ps(r_yyyy, l_zwxy);
-            let l_yxwz = _mm_shuffle_ps(l_zwxy, l_zwxy, 0b00_01_10_11);
-
-            let lzry_lwry_nlxry_nlyry = _mm_mul_ps(lzry_lwry_lxry_lyry, CONTROL_ZWXY);
-
-            let lyrz_lxrz_lwrz_lzrz = _mm_mul_ps(r_zzzz, l_yxwz);
-            let result0 = _mm_add_ps(lxrw_lyrw_lzrw_lwrw, lwrx_nlzrx_lyrx_nlxrx);
-
-            let nlyrz_lxrz_lwrz_wlzrz = _mm_mul_ps(lyrz_lxrz_lwrz_lzrz, CONTROL_YXWZ);
-            let result1 = _mm_add_ps(lzry_lwry_nlxry_nlyry, nlyrz_lxrz_lwrz_wlzrz);
-
-            Self(_mm_add_ps(result0, result1))
-        }
+        let (x0, y0, z0, w0) = self.into();
+        let (x1, y1, z1, w1) = rhs.into();
+        Self::from_xyzw(
+            w0 * x1 + x0 * w1 + y0 * z1 - z0 * y1,
+            w0 * y1 - x0 * z1 + y0 * w1 + z0 * x1,
+            w0 * z1 + x0 * y1 - y0 * x1 + z0 * w1,
+            w0 * w1 - x0 * x1 - y0 * y1 - z0 * z1,
+        )
     }
 
     /// Creates a quaternion from a 3x3 rotation matrix inside a 3D affine transform.
@@ -695,16 +662,16 @@ impl Quat {
     #[inline]
     pub fn mul_vec3a(self, rhs: Vec3A) -> Vec3A {
         unsafe {
-            const TWO: __m128 = m128_from_f32x4([2.0; 4]);
-            let w = _mm_shuffle_ps(self.0, self.0, 0b11_11_11_11);
+            const TWO: float32x4_t = f32x4_from_array([2.0; 4]);
+            let w = vdupq_laneq_f32(self.0, 3);
             let b = self.0;
-            let b2 = dot3_into_m128(b, b);
-            Vec3A(_mm_add_ps(
-                _mm_add_ps(
-                    _mm_mul_ps(rhs.0, _mm_sub_ps(_mm_mul_ps(w, w), b2)),
-                    _mm_mul_ps(b, _mm_mul_ps(dot3_into_m128(rhs.0, b), TWO)),
+            let b2 = dot3_into_f32x4(b, b);
+            Vec3A(vaddq_f32(
+                vaddq_f32(
+                    vmulq_f32(rhs.0, vsubq_f32(vmulq_f32(w, w), b2)),
+                    vmulq_f32(b, vmulq_f32(dot3_into_f32x4(rhs.0, b), TWO)),
                 ),
-                _mm_mul_ps(Vec3A(b).cross(rhs).into(), _mm_mul_ps(w, TWO)),
+                vmulq_f32(Vec3A(b).cross(rhs).into(), vmulq_f32(w, TWO)),
             ))
         }
     }
@@ -921,7 +888,7 @@ impl From<Quat> for [f32; 4] {
     }
 }
 
-impl From<Quat> for __m128 {
+impl From<Quat> for float32x4_t {
     #[inline]
     fn from(q: Quat) -> Self {
         q.0

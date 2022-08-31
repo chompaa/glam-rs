@@ -1140,7 +1140,11 @@ macro_rules! impl_vec4_bit_op_tests {
 }
 mod vec4 {
     #[cfg(any(
-        not(any(target_feature = "sse2", target_feature = "simd128")),
+        not(any(
+            target_arch = "aarch64",
+            target_feature = "sse2",
+            target_feature = "simd128"
+        )),
         feature = "scalar-math"
     ))]
     use glam::BVec4;
@@ -1328,13 +1332,21 @@ mod vec4 {
     });
 
     #[cfg(all(
-        any(target_feature = "sse2", target_feature = "simd128"),
+        any(
+            target_arch = "aarch64",
+            target_feature = "sse2",
+            target_feature = "simd128"
+        ),
         not(feature = "scalar-math")
     ))]
     impl_vec4_float_tests!(f32, vec4, Vec4, Vec3, Vec2, BVec4A);
 
     #[cfg(any(
-        not(any(target_feature = "sse2", target_feature = "simd128")),
+        not(any(
+            target_arch = "aarch64",
+            target_feature = "sse2",
+            target_feature = "simd128"
+        )),
         feature = "scalar-math"
     ))]
     impl_vec4_float_tests!(f32, vec4, Vec4, Vec3, Vec2, BVec4);

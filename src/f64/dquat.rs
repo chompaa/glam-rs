@@ -81,8 +81,8 @@ impl DQuat {
     ///
     /// This function does not check if the input is normalized, it is up to the user to
     /// provide normalized input or to normalized the resulting quaternion.
-    #[inline]
-    pub fn from_vec4(v: DVec4) -> Self {
+    #[inline(always)]
+    pub const fn from_vec4(v: DVec4) -> Self {
         Self {
             x: v.x,
             y: v.y,

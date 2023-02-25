@@ -24,9 +24,11 @@ pub const fn vec4(x: f32, y: f32, z: f32, w: f32) -> Vec4 {
     Vec4::new(x, y, z, w)
 }
 
-/// A 4-dimensional vector with SIMD support.
+/// A 4-dimensional vector.
 ///
-/// This type uses 16 byte aligned SIMD vector type for storage.
+/// SIMD vector types are used for storage on supported platforms.
+///
+/// This type is 16 byte aligned.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct Vec4(pub(crate) float32x4_t);
@@ -143,6 +145,12 @@ impl Vec4 {
     #[inline]
     pub fn dot(self, rhs: Self) -> f32 {
         unsafe { dot4(self.0, rhs.0) }
+    }
+
+    /// Returns a vector where every component is the dot product of `self` and `rhs`.
+    #[inline]
+    pub fn dot_into_vec(self, rhs: Self) -> Self {
+        Self::splat(self.dot(rhs))
     }
 
     /// Returns a vector containing the minimum values for each element of `self` and `rhs`.
@@ -263,10 +271,22 @@ impl Vec4 {
     /// - `NAN` if the number is `NAN`
     #[inline]
     pub fn signum(self) -> Self {
-        let mask = self.cmpge(Self::ZERO);
-        let result = Self::select(mask, Self::ONE, Self::NEG_ONE);
-        let mask = self.is_nan_mask();
-        Self::select(mask, self, result)
+        todo!();
+    }
+
+    /// Returns a vector with signs of `rhs` and the magnitudes of `self`.
+    #[inline]
+    pub fn copysign(self, rhs: Self) -> Self {
+        todo!();
+    }
+
+    /// Returns a bitmask with the lowest 4 bits set to the sign bits from the elements of `self`.
+    ///
+    /// A negative element results in a `1` bit and a positive element in a `0` bit.  Element `x` goes
+    /// into the first lowest bit, element `y` into the second, etc.
+    #[inline]
+    pub fn is_negative_bitmask(self) -> u32 {
+        todo!();
     }
 
     /// Returns `true` if, and only if, all elements are finite.  If any element is either

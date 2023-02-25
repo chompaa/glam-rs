@@ -900,6 +900,8 @@ impl {{ self_t }} {
                 let mask = self.is_nan_mask();
                 Self::select(mask, self, result)
             }
+        {% elif is_neon %}
+            todo!();
         {% endif %}
     }
 
@@ -926,6 +928,8 @@ impl {{ self_t }} {
                 let mask = Self::splat(-0.0);
                 Self(v128_or(v128_and(rhs.0, mask.0), v128_andnot(self.0, mask.0)))
             }
+        {% elif is_neon %}
+            todo!();
         {% endif %}
     }
 
@@ -969,6 +973,8 @@ impl {{ self_t }} {
             {% elif dim == 4 %}
                 self.0.is_sign_negative().to_bitmask() as u32
             {% endif %}
+        {% elif is_neon %}
+            todo!();
         {% endif %}
     }
 {% endif %}

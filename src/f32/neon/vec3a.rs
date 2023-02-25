@@ -24,12 +24,15 @@ pub const fn vec3a(x: f32, y: f32, z: f32) -> Vec3A {
     Vec3A::new(x, y, z)
 }
 
-/// A 3-dimensional vector with SIMD support.
+/// A 3-dimensional vector.
 ///
-/// This type is 16 byte aligned. A SIMD vector type is used for storage on supported platforms for
-/// better performance than the `Vec3` type.
+/// SIMD vector types are used for storage on supported platforms for better
+/// performance than the `Vec3` type.
 ///
-/// It is possible to convert between `Vec3` and `Vec3A` types using `From` trait implementations.
+/// It is possible to convert between `Vec3` and `Vec3A` types using `From`
+/// trait implementations.
+///
+/// This type is 16 byte aligned.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct Vec3A(pub(crate) float32x4_t);
@@ -150,6 +153,12 @@ impl Vec3A {
     #[inline]
     pub fn dot(self, rhs: Self) -> f32 {
         unsafe { dot3(self.0, rhs.0) }
+    }
+
+    /// Returns a vector where every component is the dot product of `self` and `rhs`.
+    #[inline]
+    pub fn dot_into_vec(self, rhs: Self) -> Self {
+        Self::splat(self.dot(rhs))
     }
 
     /// Computes the cross product of `self` and `rhs`.
@@ -280,10 +289,22 @@ impl Vec3A {
     /// - `NAN` if the number is `NAN`
     #[inline]
     pub fn signum(self) -> Self {
-        let mask = self.cmpge(Self::ZERO);
-        let result = Self::select(mask, Self::ONE, Self::NEG_ONE);
-        let mask = self.is_nan_mask();
-        Self::select(mask, self, result)
+        todo!();
+    }
+
+    /// Returns a vector with signs of `rhs` and the magnitudes of `self`.
+    #[inline]
+    pub fn copysign(self, rhs: Self) -> Self {
+        todo!();
+    }
+
+    /// Returns a bitmask with the lowest 3 bits set to the sign bits from the elements of `self`.
+    ///
+    /// A negative element results in a `1` bit and a positive element in a `0` bit.  Element `x` goes
+    /// into the first lowest bit, element `y` into the second, etc.
+    #[inline]
+    pub fn is_negative_bitmask(self) -> u32 {
+        todo!();
     }
 
     /// Returns `true` if, and only if, all elements are finite.  If any element is either

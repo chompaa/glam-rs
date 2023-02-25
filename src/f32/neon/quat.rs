@@ -3,7 +3,7 @@
 use crate::{
     euler::{EulerFromQuaternion, EulerRot, EulerToQuaternion},
     neon::*,
-    DQuat, FloatEx, Mat3, Mat4, Vec2, Vec3, Vec3A, Vec4,
+    DQuat, FloatEx, Mat3, Mat3A, Mat4, Vec2, Vec3, Vec3A, Vec4,
 };
 
 #[cfg(feature = "libm")]
@@ -36,6 +36,8 @@ pub const fn quat(x: f32, y: f32, z: f32, w: f32) -> Quat {
 /// This quaternion is intended to be of unit length but may denormalize due to
 /// floating point "error creep" which can occur when successive quaternion
 /// operations are applied.
+///
+/// SIMD vector types are used for storage on supported platforms.
 ///
 /// This type is 16 byte aligned.
 #[derive(Clone, Copy)]
@@ -235,6 +237,12 @@ impl Quat {
     #[inline]
     pub fn from_mat3(mat: &Mat3) -> Self {
         Self::from_rotation_axes(mat.x_axis, mat.y_axis, mat.z_axis)
+    }
+
+    /// Creates a quaternion from a 3x3 SIMD aligned rotation matrix.
+    #[inline]
+    pub fn from_mat3a(mat: &Mat3A) -> Self {
+        Self::from_rotation_axes(mat.x_axis.into(), mat.y_axis.into(), mat.z_axis.into())
     }
 
     /// Creates a quaternion from a 3x3 rotation matrix inside a homogeneous 4x4 matrix.

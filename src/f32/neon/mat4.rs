@@ -46,13 +46,6 @@ pub const fn mat4(x_axis: Vec4, y_axis: Vec4, z_axis: Vec4, w_axis: Vec4) -> Mat
 /// The resulting perspective project can be use to transform 3D vectors as points with
 /// perspective correction using the [`Self::project_point3()`] convenience method.
 #[derive(Clone, Copy)]
-#[cfg_attr(
-    any(
-        not(any(feature = "scalar-math", target_arch = "spirv")),
-        feature = "cuda"
-    ),
-    repr(align(16))
-)]
 #[repr(C)]
 pub struct Mat4 {
     pub x_axis: Vec4,
@@ -125,23 +118,14 @@ impl Mat4 {
     /// If you require data in row major order `transpose` the matrix first.
     #[inline]
     pub const fn to_cols_array(&self) -> [f32; 16] {
+        let [x_axis_x, x_axis_y, x_axis_z, x_axis_w] = self.x_axis.to_array();
+        let [y_axis_x, y_axis_y, y_axis_z, y_axis_w] = self.y_axis.to_array();
+        let [z_axis_x, z_axis_y, z_axis_z, z_axis_w] = self.z_axis.to_array();
+        let [w_axis_x, w_axis_y, w_axis_z, w_axis_w] = self.w_axis.to_array();
+
         [
-            self.x_axis.x,
-            self.x_axis.y,
-            self.x_axis.z,
-            self.x_axis.w,
-            self.y_axis.x,
-            self.y_axis.y,
-            self.y_axis.z,
-            self.y_axis.w,
-            self.z_axis.x,
-            self.z_axis.y,
-            self.z_axis.z,
-            self.z_axis.w,
-            self.w_axis.x,
-            self.w_axis.y,
-            self.w_axis.z,
-            self.w_axis.w,
+            x_axis_x, x_axis_y, x_axis_z, x_axis_w, y_axis_x, y_axis_y, y_axis_z, y_axis_w,
+            z_axis_x, z_axis_y, z_axis_z, z_axis_w, w_axis_x, w_axis_y, w_axis_z, w_axis_w,
         ]
     }
 
@@ -174,9 +158,10 @@ impl Mat4 {
     #[doc(alias = "scale")]
     #[inline]
     pub const fn from_diagonal(diagonal: Vec4) -> Self {
+        // diagonal.x, diagonal.y etc can't be done in a const-context
+        let [x, y, z, w] = diagonal.to_array();
         Self::new(
-            diagonal.x, 0.0, 0.0, 0.0, 0.0, diagonal.y, 0.0, 0.0, 0.0, 0.0, diagonal.z, 0.0, 0.0,
-            0.0, 0.0, diagonal.w,
+            x, 0.0, 0.0, 0.0, 0.0, y, 0.0, 0.0, 0.0, 0.0, z, 0.0, 0.0, 0.0, 0.0, w,
         )
     }
 
@@ -1001,7 +986,12 @@ impl Mat4 {
     /// This is the equivalent of multiplying the `Vec3A` as a 4D vector where `w` is `1.0`.
     #[inline]
     pub fn transform_point3a(&self, rhs: Vec3A) -> Vec3A {
-        self.transform_point3(rhs.into()).into()
+        glam_assert!(self.row(3).abs_diff_eq(Vec4::W, 1e-6));
+        let mut res = self.x_axis.mul(rhs.xxxx());
+        res = self.y_axis.mul(rhs.yyyy()).add(res);
+        res = self.z_axis.mul(rhs.zzzz()).add(res);
+        res = self.w_axis.add(res);
+        res.into()
     }
 
     /// Transforms the give `Vec3A` as 3D vector.
@@ -1009,16 +999,20 @@ impl Mat4 {
     /// This is the equivalent of multiplying the `Vec3A` as a 4D vector where `w` is `0.0`.
     #[inline]
     pub fn transform_vector3a(&self, rhs: Vec3A) -> Vec3A {
-        self.transform_vector3(rhs.into()).into()
+        glam_assert!(self.row(3).abs_diff_eq(Vec4::W, 1e-6));
+        let mut res = self.x_axis.mul(rhs.xxxx());
+        res = self.y_axis.mul(rhs.yyyy()).add(res);
+        res = self.z_axis.mul(rhs.zzzz()).add(res);
+        res.into()
     }
 
     /// Transforms a 4D vector.
     #[inline]
     pub fn mul_vec4(&self, rhs: Vec4) -> Vec4 {
-        let mut res = self.x_axis.mul(rhs.x);
-        res = res.add(self.y_axis.mul(rhs.y));
-        res = res.add(self.z_axis.mul(rhs.z));
-        res = res.add(self.w_axis.mul(rhs.w));
+        let mut res = self.x_axis.mul(rhs.xxxx());
+        res = res.add(self.y_axis.mul(rhs.yyyy()));
+        res = res.add(self.z_axis.mul(rhs.zzzz()));
+        res = res.add(self.w_axis.mul(rhs.wwww()));
         res
     }
 

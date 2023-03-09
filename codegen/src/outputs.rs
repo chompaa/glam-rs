@@ -630,7 +630,10 @@ pub fn build_output_pairs() -> HashMap<&'static str, tera::Context> {
             "src/f32/scalar/mat3a.rs",
             ContextBuilder::new_mat3a().build(),
         ),
-        ("src/f32/neon/mat3a.rs", ContextBuilder::new_mat3a().build()),
+        (
+            "src/f32/neon/mat3a.rs",
+            ContextBuilder::new_mat3a().target_neon().build(),
+        ),
         (
             "src/f32/sse2/mat3a.rs",
             ContextBuilder::new_mat3a().target_sse2().build(),
@@ -644,7 +647,10 @@ pub fn build_output_pairs() -> HashMap<&'static str, tera::Context> {
             ContextBuilder::new_mat3a().target_coresimd().build(),
         ),
         ("src/f32/scalar/mat4.rs", ContextBuilder::new_mat4().build()),
-        ("src/f32/neon/mat4.rs", ContextBuilder::new_mat4().build()),
+        (
+            "src/f32/neon/mat4.rs",
+            ContextBuilder::new_mat4().target_neon().build(),
+        ),
         (
             "src/f32/sse2/mat4.rs",
             ContextBuilder::new_mat4().target_sse2().build(),

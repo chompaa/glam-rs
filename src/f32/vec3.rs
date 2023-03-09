@@ -309,11 +309,11 @@ impl Vec3 {
     /// Returns a vector with signs of `rhs` and the magnitudes of `self`.
     #[inline]
     pub fn copysign(self, rhs: Self) -> Self {
-        Self {
-            x: self.x.copysign(rhs.x),
-            y: self.y.copysign(rhs.y),
-            z: self.z.copysign(rhs.z),
-        }
+        Self::new(
+            self.x.copysign(rhs.x),
+            self.y.copysign(rhs.y),
+            self.z.copysign(rhs.z),
+        )
     }
 
     /// Returns a bitmask with the lowest 3 bits set to the sign bits from the elements of `self`.

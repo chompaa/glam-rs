@@ -277,7 +277,12 @@ impl Vec4 {
     /// Returns a vector with signs of `rhs` and the magnitudes of `self`.
     #[inline]
     pub fn copysign(self, rhs: Self) -> Self {
-        todo!();
+        Self::new(
+            self.x.copysign(rhs.x),
+            self.y.copysign(rhs.y),
+            self.z.copysign(rhs.z),
+            self.w.copysign(rhs.w),
+        )
     }
 
     /// Returns a bitmask with the lowest 4 bits set to the sign bits from the elements of `self`.
@@ -616,6 +621,18 @@ impl Vec4 {
     #[inline]
     pub fn as_uvec4(&self) -> crate::UVec4 {
         crate::UVec4::new(self.x as u32, self.y as u32, self.z as u32, self.w as u32)
+    }
+
+    /// Casts all elements of `self` to `i64`.
+    #[inline]
+    pub fn as_i64vec4(&self) -> crate::I64Vec4 {
+        crate::I64Vec4::new(self.x as i64, self.y as i64, self.z as i64, self.w as i64)
+    }
+
+    /// Casts all elements of `self` to `u64`.
+    #[inline]
+    pub fn as_u64vec4(&self) -> crate::U64Vec4 {
+        crate::U64Vec4::new(self.x as u64, self.y as u64, self.z as u64, self.w as u64)
     }
 }
 

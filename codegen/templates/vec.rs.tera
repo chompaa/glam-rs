@@ -908,12 +908,12 @@ impl {{ self_t }} {
     /// Returns a vector with signs of `rhs` and the magnitudes of `self`.
     #[inline]
     pub fn copysign(self, rhs: Self) -> Self {
-        {% if is_scalar and is_float %}
-            Self {
+        {% if is_neon or is_scalar and is_float %}
+            Self::new(
                 {% for c in components %}
-                    {{ c }}: self.{{ c }}.copysign(rhs.{{ c }}),
+                    self.{{ c }}.copysign(rhs.{{ c }}),
                 {%- endfor %}
-            }
+            )
         {% elif is_scalar %}
             Self::select(rhs.cmpge(Self::ZERO), self, -self)
         {% elif is_coresimd %}
@@ -928,8 +928,8 @@ impl {{ self_t }} {
                 let mask = Self::splat(-0.0);
                 Self(v128_or(v128_and(rhs.0, mask.0), v128_andnot(self.0, mask.0)))
             }
-        {% elif is_neon %}
-            todo!();
+        {% else %}
+            unimplemented!();
         {% endif %}
     }
 

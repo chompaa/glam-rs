@@ -41,74 +41,42 @@ impl Vec2Swizzles for U64Vec2 {
 
     #[inline]
     fn xxx(self) -> U64Vec3 {
-        U64Vec3 {
-            x: self.x,
-            y: self.x,
-            z: self.x,
-        }
+        U64Vec3::new(self.x, self.x, self.x)
     }
 
     #[inline]
     fn xxy(self) -> U64Vec3 {
-        U64Vec3 {
-            x: self.x,
-            y: self.x,
-            z: self.y,
-        }
+        U64Vec3::new(self.x, self.x, self.y)
     }
 
     #[inline]
     fn xyx(self) -> U64Vec3 {
-        U64Vec3 {
-            x: self.x,
-            y: self.y,
-            z: self.x,
-        }
+        U64Vec3::new(self.x, self.y, self.x)
     }
 
     #[inline]
     fn xyy(self) -> U64Vec3 {
-        U64Vec3 {
-            x: self.x,
-            y: self.y,
-            z: self.y,
-        }
+        U64Vec3::new(self.x, self.y, self.y)
     }
 
     #[inline]
     fn yxx(self) -> U64Vec3 {
-        U64Vec3 {
-            x: self.y,
-            y: self.x,
-            z: self.x,
-        }
+        U64Vec3::new(self.y, self.x, self.x)
     }
 
     #[inline]
     fn yxy(self) -> U64Vec3 {
-        U64Vec3 {
-            x: self.y,
-            y: self.x,
-            z: self.y,
-        }
+        U64Vec3::new(self.y, self.x, self.y)
     }
 
     #[inline]
     fn yyx(self) -> U64Vec3 {
-        U64Vec3 {
-            x: self.y,
-            y: self.y,
-            z: self.x,
-        }
+        U64Vec3::new(self.y, self.y, self.x)
     }
 
     #[inline]
     fn yyy(self) -> U64Vec3 {
-        U64Vec3 {
-            x: self.y,
-            y: self.y,
-            z: self.y,
-        }
+        U64Vec3::new(self.y, self.y, self.y)
     }
 
     #[inline]

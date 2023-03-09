@@ -295,7 +295,11 @@ impl Vec3A {
     /// Returns a vector with signs of `rhs` and the magnitudes of `self`.
     #[inline]
     pub fn copysign(self, rhs: Self) -> Self {
-        todo!();
+        Self::new(
+            self.x.copysign(rhs.x),
+            self.y.copysign(rhs.y),
+            self.z.copysign(rhs.z),
+        )
     }
 
     /// Returns a bitmask with the lowest 3 bits set to the sign bits from the elements of `self`.
@@ -697,6 +701,18 @@ impl Vec3A {
     #[inline]
     pub fn as_uvec3(&self) -> crate::UVec3 {
         crate::UVec3::new(self.x as u32, self.y as u32, self.z as u32)
+    }
+
+    /// Casts all elements of `self` to `i64`.
+    #[inline]
+    pub fn as_i64vec3(&self) -> crate::I64Vec3 {
+        crate::I64Vec3::new(self.x as i64, self.y as i64, self.z as i64)
+    }
+
+    /// Casts all elements of `self` to `u64`.
+    #[inline]
+    pub fn as_u64vec3(&self) -> crate::U64Vec3 {
+        crate::U64Vec3::new(self.x as u64, self.y as u64, self.z as u64)
     }
 }
 

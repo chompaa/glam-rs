@@ -315,11 +315,9 @@ impl Vec3A {
     /// - `NAN` if the number is `NAN`
     #[inline]
     pub fn signum(self) -> Self {
-        unsafe {
-            let result = Self(_mm_or_ps(_mm_and_ps(self.0, Self::NEG_ONE.0), Self::ONE.0));
-            let mask = self.is_nan_mask();
-            Self::select(mask, self, result)
-        }
+        let result = Self(unsafe { _mm_or_ps(_mm_and_ps(self.0, Self::NEG_ONE.0), Self::ONE.0) });
+        let mask = self.is_nan_mask();
+        Self::select(mask, self, result)
     }
 
     /// Returns a vector with signs of `rhs` and the magnitudes of `self`.

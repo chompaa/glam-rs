@@ -271,7 +271,17 @@ impl Vec4 {
     /// - `NAN` if the number is `NAN`
     #[inline]
     pub fn signum(self) -> Self {
-        todo!();
+        let result = Self(unsafe {
+            vreinterpretq_f32_u32(vorrq_u32(
+                vandq_u32(
+                    vreinterpretq_u32_f32(self.0),
+                    vreinterpretq_u32_f32(Self::NEG_ONE.0),
+                ),
+                vreinterpretq_u32_f32(Self::ONE.0),
+            ))
+        });
+        let mask = self.is_nan_mask();
+        Self::select(mask, self, result)
     }
 
     /// Returns a vector with signs of `rhs` and the magnitudes of `self`.

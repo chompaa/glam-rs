@@ -889,19 +889,26 @@ impl {{ self_t }} {
         {% elif is_coresimd %}
             Self(self.0.signum())
         {% elif is_sse2 %}
-            unsafe {
-                let result = Self(_mm_or_ps(_mm_and_ps(self.0, Self::NEG_ONE.0), Self::ONE.0));
-                let mask = self.is_nan_mask();
-                Self::select(mask, self, result)
-            }
+            let result = Self(unsafe { _mm_or_ps(_mm_and_ps(self.0, Self::NEG_ONE.0), Self::ONE.0) });
+            let mask = self.is_nan_mask();
+            Self::select(mask, self, result)
         {% elif is_wasm32 %}
-            unsafe {
-                let result = Self(v128_or(v128_and(self.0, Self::NEG_ONE.0), Self::ONE.0));
-                let mask = self.is_nan_mask();
-                Self::select(mask, self, result)
-            }
+            let result = Self(v128_or(v128_and(self.0, Self::NEG_ONE.0), Self::ONE.0));
+            let mask = self.is_nan_mask();
+            Self::select(mask, self, result)
         {% elif is_neon %}
-            todo!();
+            let result = Self(unsafe {
+                vreinterpretq_f32_u32(vorrq_u32(
+                    vandq_u32(
+                        vreinterpretq_u32_f32(self.0),
+                        vreinterpretq_u32_f32(Self::NEG_ONE.0)),
+                    vreinterpretq_u32_f32(Self::ONE.0),
+                ))
+            });
+            let mask = self.is_nan_mask();
+            Self::select(mask, self, result)
+        {% else %}
+            todo!()
         {% endif %}
     }
 

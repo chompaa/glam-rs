@@ -987,6 +987,20 @@ impl {{ self_t }} {
                 self.0.is_sign_negative().to_bitmask() as u32
             {% endif %}
         {% elif is_neon %}
+            unsafe {
+                let nmask = vreinterpretq_u32_f32(vdupq_n_f32(-0.0));
+                let m = vandq_u32(vreinterpretq_u32_f32(self.0), nmask);
+                let x = vgetq_lane_u32(m, 0) >> 31;
+                let y = vgetq_lane_u32(m, 1) >> 31;
+                let z = vgetq_lane_u32(m, 2) >> 31;
+                {% if dim == 3 %}
+                    x | y << 1 | z << 2
+                {% elif dim == 4 %}
+                    let w = vgetq_lane_u32(m, 3) >> 31;
+                    x | y << 1 | z << 2 | w << 3
+                {% endif %}
+            }
+        {% else %}
             todo!();
         {% endif %}
     }

@@ -297,13 +297,8 @@ impl Vec4 {
     /// Returns a vector with signs of `rhs` and the magnitudes of `self`.
     #[inline]
     pub fn copysign(self, rhs: Self) -> Self {
-        unsafe {
-            let mask = Self::splat(-0.0);
-            Self(_mm_or_ps(
-                _mm_and_ps(rhs.0, mask.0),
-                _mm_andnot_ps(mask.0, self.0),
-            ))
-        }
+        let mask = Self::splat(-0.0);
+        Self(unsafe { _mm_or_ps(_mm_and_ps(rhs.0, mask.0), _mm_andnot_ps(mask.0, self.0)) })
     }
 
     /// Returns a bitmask with the lowest 4 bits set to the sign bits from the elements of `self`.

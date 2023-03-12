@@ -323,7 +323,15 @@ impl Vec3A {
     /// into the first lowest bit, element `y` into the second, etc.
     #[inline]
     pub fn is_negative_bitmask(self) -> u32 {
-        todo!();
+        unsafe {
+            let nmask = vreinterpretq_u32_f32(vdupq_n_f32(-0.0));
+            let m = vandq_u32(vreinterpretq_u32_f32(self.0), nmask);
+            let x = vgetq_lane_u32(m, 0) >> 31;
+            let y = vgetq_lane_u32(m, 1) >> 31;
+            let z = vgetq_lane_u32(m, 2) >> 31;
+
+            x | y << 1 | z << 2
+        }
     }
 
     /// Returns `true` if, and only if, all elements are finite.  If any element is either

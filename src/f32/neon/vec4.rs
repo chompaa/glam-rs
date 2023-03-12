@@ -287,12 +287,16 @@ impl Vec4 {
     /// Returns a vector with signs of `rhs` and the magnitudes of `self`.
     #[inline]
     pub fn copysign(self, rhs: Self) -> Self {
-        Self::new(
-            self.x.copysign(rhs.x),
-            self.y.copysign(rhs.y),
-            self.z.copysign(rhs.z),
-            self.w.copysign(rhs.w),
-        )
+        let mask = Self::splat(-0.0);
+        Self(unsafe {
+            vreinterpretq_f32_u32(vorrq_u32(
+                vandq_u32(vreinterpretq_u32_f32(rhs.0), vreinterpretq_u32_f32(mask.0)),
+                vandq_u32(
+                    vreinterpretq_u32_f32(self.0),
+                    vmvnq_u32(vreinterpretq_u32_f32(mask.0)),
+                ),
+            ))
+        })
     }
 
     /// Returns a bitmask with the lowest 4 bits set to the sign bits from the elements of `self`.

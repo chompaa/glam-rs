@@ -1,21 +1,10 @@
 // Generated from mat.rs.tera template. Edit the template, not the generated file.
 
-use crate::{f32::math, swizzles::*, DMat2, Mat3, Mat3A, Vec2};
+use crate::{f32::math, swizzles::*, DMat2, Mat2A, Mat3, Mat3A, Vec2};
 #[cfg(not(target_arch = "spirv"))]
 use core::fmt;
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
-
-#[cfg(target_arch = "x86")]
-use core::arch::x86::*;
-#[cfg(target_arch = "x86_64")]
-use core::arch::x86_64::*;
-
-#[repr(C)]
-union UnionCast {
-    a: [f32; 4],
-    v: Mat2,
-}
 
 /// Creates a 2x2 matrix from two column vectors.
 #[inline(always)]
@@ -25,13 +14,12 @@ pub const fn mat2(x_axis: Vec2, y_axis: Vec2) -> Mat2 {
 }
 
 /// A 2x2 column major matrix.
-///
-/// SIMD vector types are used for storage on supported platforms.
-///
-/// This type is 16 byte aligned.
 #[derive(Clone, Copy)]
-#[repr(transparent)]
-pub struct Mat2(pub(crate) __m128);
+#[repr(C)]
+pub struct Mat2 {
+    pub x_axis: Vec2,
+    pub y_axis: Vec2,
+}
 
 impl Mat2 {
     /// A 2x2 matrix with all elements set to `0.0`.
@@ -47,11 +35,9 @@ impl Mat2 {
     #[inline(always)]
     #[must_use]
     const fn new(m00: f32, m01: f32, m10: f32, m11: f32) -> Self {
-        unsafe {
-            UnionCast {
-                a: [m00, m01, m10, m11],
-            }
-            .v
+        Self {
+            x_axis: Vec2::new(m00, m01),
+            y_axis: Vec2::new(m10, m11),
         }
     }
 
@@ -59,12 +45,7 @@ impl Mat2 {
     #[inline(always)]
     #[must_use]
     pub const fn from_cols(x_axis: Vec2, y_axis: Vec2) -> Self {
-        unsafe {
-            UnionCast {
-                a: [x_axis.x, x_axis.y, y_axis.x, y_axis.y],
-            }
-            .v
-        }
+        Self { x_axis, y_axis }
     }
 
     /// Creates a 2x2 matrix from a `[f32; 4]` array stored in column major order.
@@ -81,7 +62,7 @@ impl Mat2 {
     #[inline]
     #[must_use]
     pub const fn to_cols_array(&self) -> [f32; 4] {
-        unsafe { *(self as *const Self as *const [f32; 4]) }
+        [self.x_axis.x, self.x_axis.y, self.y_axis.x, self.y_axis.y]
     }
 
     /// Creates a 2x2 matrix from a `[[f32; 2]; 2]` 2D array stored in column major order.
@@ -98,7 +79,7 @@ impl Mat2 {
     #[inline]
     #[must_use]
     pub const fn to_cols_array_2d(&self) -> [[f32; 2]; 2] {
-        unsafe { *(self as *const Self as *const [[f32; 2]; 2]) }
+        [self.x_axis.to_array(), self.y_axis.to_array()]
     }
 
     /// Creates a 2x2 matrix with its diagonal set to `diagonal` and all other entries set to 0.
@@ -227,20 +208,17 @@ impl Mat2 {
     #[inline]
     #[must_use]
     pub fn transpose(&self) -> Self {
-        Self(unsafe { _mm_shuffle_ps(self.0, self.0, 0b11_01_10_00) })
+        Self {
+            x_axis: Vec2::new(self.x_axis.x, self.y_axis.x),
+            y_axis: Vec2::new(self.x_axis.y, self.y_axis.y),
+        }
     }
 
     /// Returns the determinant of `self`.
     #[inline]
     #[must_use]
     pub fn determinant(&self) -> f32 {
-        unsafe {
-            let abcd = self.0;
-            let dcba = _mm_shuffle_ps(abcd, abcd, 0b00_01_10_11);
-            let prod = _mm_mul_ps(abcd, dcba);
-            let det = _mm_sub_ps(prod, _mm_shuffle_ps(prod, prod, 0b01_01_01_01));
-            _mm_cvtss_f32(det)
-        }
+        self.x_axis.x * self.y_axis.y - self.x_axis.y * self.y_axis.x
     }
 
     /// Returns the inverse of `self`.
@@ -253,76 +231,56 @@ impl Mat2 {
     #[inline]
     #[must_use]
     pub fn inverse(&self) -> Self {
-        unsafe {
-            const SIGN: __m128 = crate::sse2::m128_from_f32x4([1.0, -1.0, -1.0, 1.0]);
-            let abcd = self.0;
-            let dcba = _mm_shuffle_ps(abcd, abcd, 0b00_01_10_11);
-            let prod = _mm_mul_ps(abcd, dcba);
-            let sub = _mm_sub_ps(prod, _mm_shuffle_ps(prod, prod, 0b01_01_01_01));
-            let det = _mm_shuffle_ps(sub, sub, 0b00_00_00_00);
-            let tmp = _mm_div_ps(SIGN, det);
-            glam_assert!(Mat2(tmp).is_finite());
-            let dbca = _mm_shuffle_ps(abcd, abcd, 0b00_10_01_11);
-            Self(_mm_mul_ps(dbca, tmp))
-        }
+        let inv_det = {
+            let det = self.determinant();
+            glam_assert!(det != 0.0);
+            det.recip()
+        };
+        Self::new(
+            self.y_axis.y * inv_det,
+            self.x_axis.y * -inv_det,
+            self.y_axis.x * -inv_det,
+            self.x_axis.x * inv_det,
+        )
     }
 
     /// Transforms a 2D vector.
     #[inline]
     #[must_use]
     pub fn mul_vec2(&self, rhs: Vec2) -> Vec2 {
-        unsafe {
-            use crate::Align16;
-            use core::mem::MaybeUninit;
-            let abcd = self.0;
-            let xxyy = _mm_set_ps(rhs.y, rhs.y, rhs.x, rhs.x);
-            let axbxcydy = _mm_mul_ps(abcd, xxyy);
-            let cydyaxbx = _mm_shuffle_ps(axbxcydy, axbxcydy, 0b01_00_11_10);
-            let result = _mm_add_ps(axbxcydy, cydyaxbx);
-            let mut out: MaybeUninit<Align16<Vec2>> = MaybeUninit::uninit();
-            _mm_store_ps(out.as_mut_ptr().cast(), result);
-            out.assume_init().0
-        }
+        #[allow(clippy::suspicious_operation_groupings)]
+        Vec2::new(
+            (self.x_axis.x * rhs.x) + (self.y_axis.x * rhs.y),
+            (self.x_axis.y * rhs.x) + (self.y_axis.y * rhs.y),
+        )
     }
 
     /// Multiplies two 2x2 matrices.
     #[inline]
     #[must_use]
     pub fn mul_mat2(&self, rhs: &Self) -> Self {
-        unsafe {
-            let abcd = self.0;
-            let rhs = rhs.0;
-            let xxyy0 = _mm_shuffle_ps(rhs, rhs, 0b01_01_00_00);
-            let xxyy1 = _mm_shuffle_ps(rhs, rhs, 0b11_11_10_10);
-            let axbxcydy0 = _mm_mul_ps(abcd, xxyy0);
-            let axbxcydy1 = _mm_mul_ps(abcd, xxyy1);
-            let cydyaxbx0 = _mm_shuffle_ps(axbxcydy0, axbxcydy0, 0b01_00_11_10);
-            let cydyaxbx1 = _mm_shuffle_ps(axbxcydy1, axbxcydy1, 0b01_00_11_10);
-            let result0 = _mm_add_ps(axbxcydy0, cydyaxbx0);
-            let result1 = _mm_add_ps(axbxcydy1, cydyaxbx1);
-            Self(_mm_shuffle_ps(result0, result1, 0b01_00_01_00))
-        }
+        Self::from_cols(self.mul(rhs.x_axis), self.mul(rhs.y_axis))
     }
 
     /// Adds two 2x2 matrices.
     #[inline]
     #[must_use]
     pub fn add_mat2(&self, rhs: &Self) -> Self {
-        Self(unsafe { _mm_add_ps(self.0, rhs.0) })
+        Self::from_cols(self.x_axis.add(rhs.x_axis), self.y_axis.add(rhs.y_axis))
     }
 
     /// Subtracts two 2x2 matrices.
     #[inline]
     #[must_use]
     pub fn sub_mat2(&self, rhs: &Self) -> Self {
-        Self(unsafe { _mm_sub_ps(self.0, rhs.0) })
+        Self::from_cols(self.x_axis.sub(rhs.x_axis), self.y_axis.sub(rhs.y_axis))
     }
 
     /// Multiplies a 2x2 matrix by a scalar.
     #[inline]
     #[must_use]
     pub fn mul_scalar(&self, rhs: f32) -> Self {
-        Self(unsafe { _mm_mul_ps(self.0, _mm_set_ps1(rhs)) })
+        Self::from_cols(self.x_axis.mul(rhs), self.y_axis.mul(rhs))
     }
 
     /// Returns true if the absolute difference of all elements between `self` and `rhs`
@@ -395,7 +353,7 @@ impl Neg for Mat2 {
     type Output = Self;
     #[inline]
     fn neg(self) -> Self::Output {
-        Self(unsafe { _mm_xor_ps(self.0, _mm_set1_ps(-0.0)) })
+        Self::from_cols(self.x_axis.neg(), self.y_axis.neg())
     }
 }
 
@@ -442,6 +400,13 @@ impl MulAssign<f32> for Mat2 {
     #[inline]
     fn mul_assign(&mut self, rhs: f32) {
         *self = self.mul_scalar(rhs);
+    }
+}
+
+impl From<Mat2A> for Mat2 {
+    #[inline]
+    fn from(m: Mat2A) -> Self {
+        Self::from_cols(m.x_axis, m.y_axis)
     }
 }
 
@@ -501,21 +466,6 @@ impl AsMut<[f32; 4]> for Mat2 {
     #[inline]
     fn as_mut(&mut self) -> &mut [f32; 4] {
         unsafe { &mut *(self as *mut Self as *mut [f32; 4]) }
-    }
-}
-
-impl core::ops::Deref for Mat2 {
-    type Target = crate::deref::Cols2<Vec2>;
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*(self as *const Self as *const Self::Target) }
-    }
-}
-
-impl core::ops::DerefMut for Mat2 {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *(self as *mut Self as *mut Self::Target) }
     }
 }
 

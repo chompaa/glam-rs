@@ -152,8 +152,7 @@ impl I16Vec4 {
     #[inline]
     #[must_use]
     pub fn truncate(self) -> I16Vec3 {
-        use crate::swizzles::Vec4Swizzles;
-        self.xyz()
+        I16Vec3::new(self.x, self.y, self.z)
     }
 
     /// Computes the dot product of `self` and `rhs`.

@@ -137,8 +137,7 @@ impl U64Vec4 {
     #[inline]
     #[must_use]
     pub fn truncate(self) -> U64Vec3 {
-        use crate::swizzles::Vec4Swizzles;
-        self.xyz()
+        U64Vec3::new(self.x, self.y, self.z)
     }
 
     /// Computes the dot product of `self` and `rhs`.

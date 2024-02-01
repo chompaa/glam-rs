@@ -1,6 +1,6 @@
 // Generated from vec.rs.tera template. Edit the template, not the generated file.
 
-use crate::{f32::math, wasm32::*, BVec4A, Vec2, Vec3, Vec3A};
+use crate::{f32::math, wasm32::*, BVec4A, Vec2, Vec3, Vec3A, Vec4};
 
 #[cfg(not(target_arch = "spirv"))]
 use core::fmt;
@@ -12,26 +12,30 @@ use core::arch::wasm32::*;
 #[repr(C)]
 union UnionCast {
     a: [f32; 4],
-    v: Vec4,
+    v: Vec4A,
 }
 
 /// Creates a 4-dimensional vector.
 #[inline(always)]
 #[must_use]
-pub const fn vec4(x: f32, y: f32, z: f32, w: f32) -> Vec4 {
-    Vec4::new(x, y, z, w)
+pub const fn vec4a(x: f32, y: f32, z: f32, w: f32) -> Vec4A {
+    Vec4A::new(x, y, z, w)
 }
 
 /// A 4-dimensional vector.
 ///
-/// SIMD vector types are used for storage on supported platforms.
+/// SIMD vector types are used for storage on supported platforms for better
+/// performance than the [`Vec4`] type.
+///
+/// It is possible to convert between [`Vec4`] and [`Vec4A`] types using [`From`]
+/// or [`Into`] trait implementations.
 ///
 /// This type is 16 byte aligned.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct Vec4(pub(crate) v128);
+pub struct Vec4A(pub(crate) v128);
 
-impl Vec4 {
+impl Vec4A {
     /// All zeroes.
     pub const ZERO: Self = Self::splat(0.0);
 
@@ -119,7 +123,7 @@ impl Vec4 {
     #[inline]
     #[must_use]
     pub const fn to_array(&self) -> [f32; 4] {
-        unsafe { *(self as *const Vec4 as *const [f32; 4]) }
+        unsafe { *(self as *const Vec4A as *const [f32; 4]) }
     }
 
     /// Creates a vector from the first 4 values in `slice`.
@@ -154,8 +158,7 @@ impl Vec4 {
     #[inline]
     #[must_use]
     pub fn truncate(self) -> Vec3 {
-        use crate::swizzles::Vec4Swizzles;
-        self.xyz()
+        Vec3::new(self.x, self.y, self.z)
     }
 
     /// Computes the dot product of `self` and `rhs`.
@@ -802,21 +805,21 @@ impl Vec4 {
     }
 }
 
-impl Default for Vec4 {
+impl Default for Vec4A {
     #[inline(always)]
     fn default() -> Self {
         Self::ZERO
     }
 }
 
-impl PartialEq for Vec4 {
+impl PartialEq for Vec4A {
     #[inline]
     fn eq(&self, rhs: &Self) -> bool {
         self.cmpeq(*rhs).all()
     }
 }
 
-impl Div<Vec4> for Vec4 {
+impl Div<Vec4A> for Vec4A {
     type Output = Self;
     #[inline]
     fn div(self, rhs: Self) -> Self {
@@ -824,14 +827,14 @@ impl Div<Vec4> for Vec4 {
     }
 }
 
-impl DivAssign<Vec4> for Vec4 {
+impl DivAssign<Vec4A> for Vec4A {
     #[inline]
     fn div_assign(&mut self, rhs: Self) {
         self.0 = f32x4_div(self.0, rhs.0);
     }
 }
 
-impl Div<f32> for Vec4 {
+impl Div<f32> for Vec4A {
     type Output = Self;
     #[inline]
     fn div(self, rhs: f32) -> Self {
@@ -839,22 +842,22 @@ impl Div<f32> for Vec4 {
     }
 }
 
-impl DivAssign<f32> for Vec4 {
+impl DivAssign<f32> for Vec4A {
     #[inline]
     fn div_assign(&mut self, rhs: f32) {
         self.0 = f32x4_div(self.0, f32x4_splat(rhs))
     }
 }
 
-impl Div<Vec4> for f32 {
-    type Output = Vec4;
+impl Div<Vec4A> for f32 {
+    type Output = Vec4A;
     #[inline]
-    fn div(self, rhs: Vec4) -> Vec4 {
-        Vec4(f32x4_div(f32x4_splat(self), rhs.0))
+    fn div(self, rhs: Vec4A) -> Vec4A {
+        Vec4A(f32x4_div(f32x4_splat(self), rhs.0))
     }
 }
 
-impl Mul<Vec4> for Vec4 {
+impl Mul<Vec4A> for Vec4A {
     type Output = Self;
     #[inline]
     fn mul(self, rhs: Self) -> Self {
@@ -862,14 +865,14 @@ impl Mul<Vec4> for Vec4 {
     }
 }
 
-impl MulAssign<Vec4> for Vec4 {
+impl MulAssign<Vec4A> for Vec4A {
     #[inline]
     fn mul_assign(&mut self, rhs: Self) {
         self.0 = f32x4_mul(self.0, rhs.0);
     }
 }
 
-impl Mul<f32> for Vec4 {
+impl Mul<f32> for Vec4A {
     type Output = Self;
     #[inline]
     fn mul(self, rhs: f32) -> Self {
@@ -877,22 +880,22 @@ impl Mul<f32> for Vec4 {
     }
 }
 
-impl MulAssign<f32> for Vec4 {
+impl MulAssign<f32> for Vec4A {
     #[inline]
     fn mul_assign(&mut self, rhs: f32) {
         self.0 = f32x4_mul(self.0, f32x4_splat(rhs))
     }
 }
 
-impl Mul<Vec4> for f32 {
-    type Output = Vec4;
+impl Mul<Vec4A> for f32 {
+    type Output = Vec4A;
     #[inline]
-    fn mul(self, rhs: Vec4) -> Vec4 {
-        Vec4(f32x4_mul(f32x4_splat(self), rhs.0))
+    fn mul(self, rhs: Vec4A) -> Vec4A {
+        Vec4A(f32x4_mul(f32x4_splat(self), rhs.0))
     }
 }
 
-impl Add<Vec4> for Vec4 {
+impl Add<Vec4A> for Vec4A {
     type Output = Self;
     #[inline]
     fn add(self, rhs: Self) -> Self {
@@ -900,14 +903,14 @@ impl Add<Vec4> for Vec4 {
     }
 }
 
-impl AddAssign<Vec4> for Vec4 {
+impl AddAssign<Vec4A> for Vec4A {
     #[inline]
     fn add_assign(&mut self, rhs: Self) {
         self.0 = f32x4_add(self.0, rhs.0);
     }
 }
 
-impl Add<f32> for Vec4 {
+impl Add<f32> for Vec4A {
     type Output = Self;
     #[inline]
     fn add(self, rhs: f32) -> Self {
@@ -915,22 +918,22 @@ impl Add<f32> for Vec4 {
     }
 }
 
-impl AddAssign<f32> for Vec4 {
+impl AddAssign<f32> for Vec4A {
     #[inline]
     fn add_assign(&mut self, rhs: f32) {
         self.0 = f32x4_add(self.0, f32x4_splat(rhs));
     }
 }
 
-impl Add<Vec4> for f32 {
-    type Output = Vec4;
+impl Add<Vec4A> for f32 {
+    type Output = Vec4A;
     #[inline]
-    fn add(self, rhs: Vec4) -> Vec4 {
-        Vec4(f32x4_add(f32x4_splat(self), rhs.0))
+    fn add(self, rhs: Vec4A) -> Vec4A {
+        Vec4A(f32x4_add(f32x4_splat(self), rhs.0))
     }
 }
 
-impl Sub<Vec4> for Vec4 {
+impl Sub<Vec4A> for Vec4A {
     type Output = Self;
     #[inline]
     fn sub(self, rhs: Self) -> Self {
@@ -938,14 +941,14 @@ impl Sub<Vec4> for Vec4 {
     }
 }
 
-impl SubAssign<Vec4> for Vec4 {
+impl SubAssign<Vec4A> for Vec4A {
     #[inline]
-    fn sub_assign(&mut self, rhs: Vec4) {
+    fn sub_assign(&mut self, rhs: Vec4A) {
         self.0 = f32x4_sub(self.0, rhs.0);
     }
 }
 
-impl Sub<f32> for Vec4 {
+impl Sub<f32> for Vec4A {
     type Output = Self;
     #[inline]
     fn sub(self, rhs: f32) -> Self {
@@ -953,22 +956,22 @@ impl Sub<f32> for Vec4 {
     }
 }
 
-impl SubAssign<f32> for Vec4 {
+impl SubAssign<f32> for Vec4A {
     #[inline]
     fn sub_assign(&mut self, rhs: f32) {
         self.0 = f32x4_sub(self.0, f32x4_splat(rhs))
     }
 }
 
-impl Sub<Vec4> for f32 {
-    type Output = Vec4;
+impl Sub<Vec4A> for f32 {
+    type Output = Vec4A;
     #[inline]
-    fn sub(self, rhs: Vec4) -> Vec4 {
-        Vec4(f32x4_sub(f32x4_splat(self), rhs.0))
+    fn sub(self, rhs: Vec4A) -> Vec4A {
+        Vec4A(f32x4_sub(f32x4_splat(self), rhs.0))
     }
 }
 
-impl Rem<Vec4> for Vec4 {
+impl Rem<Vec4A> for Vec4A {
     type Output = Self;
     #[inline]
     fn rem(self, rhs: Self) -> Self {
@@ -977,14 +980,14 @@ impl Rem<Vec4> for Vec4 {
     }
 }
 
-impl RemAssign<Vec4> for Vec4 {
+impl RemAssign<Vec4A> for Vec4A {
     #[inline]
     fn rem_assign(&mut self, rhs: Self) {
         *self = self.rem(rhs);
     }
 }
 
-impl Rem<f32> for Vec4 {
+impl Rem<f32> for Vec4A {
     type Output = Self;
     #[inline]
     fn rem(self, rhs: f32) -> Self {
@@ -992,38 +995,38 @@ impl Rem<f32> for Vec4 {
     }
 }
 
-impl RemAssign<f32> for Vec4 {
+impl RemAssign<f32> for Vec4A {
     #[inline]
     fn rem_assign(&mut self, rhs: f32) {
         *self = self.rem(Self::splat(rhs));
     }
 }
 
-impl Rem<Vec4> for f32 {
-    type Output = Vec4;
+impl Rem<Vec4A> for f32 {
+    type Output = Vec4A;
     #[inline]
-    fn rem(self, rhs: Vec4) -> Vec4 {
-        Vec4::splat(self).rem(rhs)
+    fn rem(self, rhs: Vec4A) -> Vec4A {
+        Vec4A::splat(self).rem(rhs)
     }
 }
 
 #[cfg(not(target_arch = "spirv"))]
-impl AsRef<[f32; 4]> for Vec4 {
+impl AsRef<[f32; 4]> for Vec4A {
     #[inline]
     fn as_ref(&self) -> &[f32; 4] {
-        unsafe { &*(self as *const Vec4 as *const [f32; 4]) }
+        unsafe { &*(self as *const Vec4A as *const [f32; 4]) }
     }
 }
 
 #[cfg(not(target_arch = "spirv"))]
-impl AsMut<[f32; 4]> for Vec4 {
+impl AsMut<[f32; 4]> for Vec4A {
     #[inline]
     fn as_mut(&mut self) -> &mut [f32; 4] {
-        unsafe { &mut *(self as *mut Vec4 as *mut [f32; 4]) }
+        unsafe { &mut *(self as *mut Vec4A as *mut [f32; 4]) }
     }
 }
 
-impl Sum for Vec4 {
+impl Sum for Vec4A {
     #[inline]
     fn sum<I>(iter: I) -> Self
     where
@@ -1033,7 +1036,7 @@ impl Sum for Vec4 {
     }
 }
 
-impl<'a> Sum<&'a Self> for Vec4 {
+impl<'a> Sum<&'a Self> for Vec4A {
     #[inline]
     fn sum<I>(iter: I) -> Self
     where
@@ -1043,7 +1046,7 @@ impl<'a> Sum<&'a Self> for Vec4 {
     }
 }
 
-impl Product for Vec4 {
+impl Product for Vec4A {
     #[inline]
     fn product<I>(iter: I) -> Self
     where
@@ -1053,7 +1056,7 @@ impl Product for Vec4 {
     }
 }
 
-impl<'a> Product<&'a Self> for Vec4 {
+impl<'a> Product<&'a Self> for Vec4A {
     #[inline]
     fn product<I>(iter: I) -> Self
     where
@@ -1063,7 +1066,7 @@ impl<'a> Product<&'a Self> for Vec4 {
     }
 }
 
-impl Neg for Vec4 {
+impl Neg for Vec4A {
     type Output = Self;
     #[inline]
     fn neg(self) -> Self {
@@ -1071,7 +1074,7 @@ impl Neg for Vec4 {
     }
 }
 
-impl Index<usize> for Vec4 {
+impl Index<usize> for Vec4A {
     type Output = f32;
     #[inline]
     fn index(&self, index: usize) -> &Self::Output {
@@ -1085,7 +1088,7 @@ impl Index<usize> for Vec4 {
     }
 }
 
-impl IndexMut<usize> for Vec4 {
+impl IndexMut<usize> for Vec4A {
     #[inline]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         match index {
@@ -1099,16 +1102,16 @@ impl IndexMut<usize> for Vec4 {
 }
 
 #[cfg(not(target_arch = "spirv"))]
-impl fmt::Display for Vec4 {
+impl fmt::Display for Vec4A {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[{}, {}, {}, {}]", self.x, self.y, self.z, self.w)
     }
 }
 
 #[cfg(not(target_arch = "spirv"))]
-impl fmt::Debug for Vec4 {
+impl fmt::Debug for Vec4A {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_tuple(stringify!(Vec4))
+        fmt.debug_tuple(stringify!(Vec4A))
             .field(&self.x)
             .field(&self.y)
             .field(&self.z)
@@ -1117,91 +1120,100 @@ impl fmt::Debug for Vec4 {
     }
 }
 
-impl From<Vec4> for v128 {
+impl From<Vec4A> for v128 {
     #[inline]
-    fn from(t: Vec4) -> Self {
+    fn from(t: Vec4A) -> Self {
         t.0
     }
 }
 
-impl From<v128> for Vec4 {
+impl From<v128> for Vec4A {
     #[inline]
     fn from(t: v128) -> Self {
         Self(t)
     }
 }
 
-impl From<[f32; 4]> for Vec4 {
+impl From<[f32; 4]> for Vec4A {
     #[inline]
     fn from(a: [f32; 4]) -> Self {
         Self::new(a[0], a[1], a[2], a[3])
     }
 }
 
-impl From<Vec4> for [f32; 4] {
+impl From<Vec4A> for [f32; 4] {
     #[inline]
-    fn from(v: Vec4) -> Self {
+    fn from(v: Vec4A) -> Self {
         unsafe { *(&v.0 as *const v128 as *const Self) }
     }
 }
 
-impl From<(f32, f32, f32, f32)> for Vec4 {
+impl From<(f32, f32, f32, f32)> for Vec4A {
     #[inline]
     fn from(t: (f32, f32, f32, f32)) -> Self {
         Self::new(t.0, t.1, t.2, t.3)
     }
 }
 
-impl From<Vec4> for (f32, f32, f32, f32) {
+impl From<Vec4A> for (f32, f32, f32, f32) {
     #[inline]
-    fn from(v: Vec4) -> Self {
+    fn from(v: Vec4A) -> Self {
         unsafe { *(&v.0 as *const v128 as *const Self) }
     }
 }
 
-impl From<(Vec3A, f32)> for Vec4 {
+impl From<(Vec3A, f32)> for Vec4A {
     #[inline]
     fn from((v, w): (Vec3A, f32)) -> Self {
-        v.extend(w)
+        let mut v = Self(v.0);
+        v.w = w;
+        v
     }
 }
 
-impl From<(f32, Vec3A)> for Vec4 {
+impl From<(f32, Vec3A)> for Vec4A {
     #[inline]
     fn from((x, v): (f32, Vec3A)) -> Self {
         Self::new(x, v.x, v.y, v.z)
     }
 }
 
-impl From<(Vec3, f32)> for Vec4 {
+impl From<Vec4> for Vec4A {
+    #[inline]
+    fn from(v: Vec4) -> Self {
+        Self::new(v.x, v.y, v.z, v.w)
+    }
+}
+
+impl From<(Vec3, f32)> for Vec4A {
     #[inline]
     fn from((v, w): (Vec3, f32)) -> Self {
         Self::new(v.x, v.y, v.z, w)
     }
 }
 
-impl From<(f32, Vec3)> for Vec4 {
+impl From<(f32, Vec3)> for Vec4A {
     #[inline]
     fn from((x, v): (f32, Vec3)) -> Self {
         Self::new(x, v.x, v.y, v.z)
     }
 }
 
-impl From<(Vec2, f32, f32)> for Vec4 {
+impl From<(Vec2, f32, f32)> for Vec4A {
     #[inline]
     fn from((v, z, w): (Vec2, f32, f32)) -> Self {
         Self::new(v.x, v.y, z, w)
     }
 }
 
-impl From<(Vec2, Vec2)> for Vec4 {
+impl From<(Vec2, Vec2)> for Vec4A {
     #[inline]
     fn from((v, u): (Vec2, Vec2)) -> Self {
         Self::new(v.x, v.y, u.x, u.y)
     }
 }
 
-impl Deref for Vec4 {
+impl Deref for Vec4A {
     type Target = crate::deref::Vec4<f32>;
     #[inline]
     fn deref(&self) -> &Self::Target {
@@ -1209,7 +1221,7 @@ impl Deref for Vec4 {
     }
 }
 
-impl DerefMut for Vec4 {
+impl DerefMut for Vec4A {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { &mut *(self as *mut Self).cast() }

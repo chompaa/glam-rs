@@ -262,6 +262,35 @@ macro_rules! impl_quat_tests {
             assert_approx_eq!((q1 * q5).angle_between(q6 * q5), TAU - TAU * 0.94, eps);
         });
 
+        glam_test!(test_rotate_towards, {
+            use core::$t::consts::{FRAC_PI_2, FRAC_PI_4};
+            let eps = 10.0 * core::$t::EPSILON as f32;
+
+            // Setup such that `q0` is `PI/2` and `-PI/2` radians away from `q1` and `q2` respectively.
+            let q0 = $quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0);
+            let q1 = $quat::from_euler(EulerRot::YXZ, FRAC_PI_2, 0.0, 0.0);
+            let q2 = $quat::from_euler(EulerRot::YXZ, -FRAC_PI_2, 0.0, 0.0);
+
+            // Positive delta
+            assert_approx_eq!(q0, q0.rotate_towards(q1, 0.0), eps);
+            assert_approx_eq!(
+                $quat::from_euler(EulerRot::YXZ, FRAC_PI_4, 0.0, 0.0),
+                q0.rotate_towards(q1, FRAC_PI_4),
+                eps
+            );
+            assert_approx_eq!(q1, q0.rotate_towards(q1, FRAC_PI_2), eps);
+            assert_approx_eq!(q1, q0.rotate_towards(q1, FRAC_PI_2 * 1.5), eps);
+
+            // Negative delta
+            assert_approx_eq!(
+                $quat::from_euler(EulerRot::YXZ, -FRAC_PI_4, 0.0, 0.0),
+                q0.rotate_towards(q1, -FRAC_PI_4),
+                eps
+            );
+            assert_approx_eq!(q2, q0.rotate_towards(q1, -FRAC_PI_2), eps);
+            assert_approx_eq!(q2, q0.rotate_towards(q1, -FRAC_PI_2 * 1.5), eps);
+        });
+
         glam_test!(test_lerp, {
             let q0 = $quat::from_rotation_y(deg(0.0));
             let q1 = $quat::from_rotation_y(deg(90.0));
